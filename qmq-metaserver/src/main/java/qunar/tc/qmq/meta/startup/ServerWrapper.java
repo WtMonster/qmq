@@ -95,12 +95,18 @@ public class ServerWrapper implements Disposable {
         final int port = config.getInt("meta.server.port", DEFAULT_META_SERVER_PORT);
         context.setAttribute("port", port);
 
+        // 下面的storeImpl就相当于Dao对象
+
+        // 获取数据源配置(使用DefaultDataSourceFactory类根据datasource.properties创建，载体为mysql)
         JdbcTemplate jdbcTemplate = JdbcTemplateHolder.getOrCreate();
         final Store store = new DatabaseStore(jdbcTemplate);
-        final BrokerStore brokerStore = new BrokerStoreImpl(jdbcTemplate);
+        // 缓存工厂中设置CacheManager实现类的存储都为本数据源
         CacheManagerFactory.setStore(store);
+        // 配置broker数据，5秒从数据库刷一次
         final BrokerMetaManager brokerMetaManager = BrokerMetaManager.getInstance();
+        final BrokerStore brokerStore = new BrokerStoreImpl(jdbcTemplate);
         brokerMetaManager.init(brokerStore);
+        // 每五秒刷新一次
         final ReadonlyBrokerGroupSettingStore readonlyBrokerGroupSettingStore = new ReadonlyBrokerGroupSettingStoreImpl(jdbcTemplate);
         final CachedMetaInfoManager cachedMetaInfoManager = new CachedMetaInfoManager(config, store, readonlyBrokerGroupSettingStore);
         final ReadonlyBrokerGroupManager readonlyBrokerGroupManager = new ReadonlyBrokerGroupManager(cachedMetaInfoManager);
